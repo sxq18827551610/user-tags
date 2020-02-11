@@ -1,0 +1,301 @@
+= 尚硅谷用户标签项目文档
+尚硅谷大数据讲师左元 <zuoyuan@atguigu.com>
+v1.0, 2019-06-01
+:icons: font
+:source-highlighter: pygments
+:toc: left
+:toclevels: 4
+:imagesdir: images
+:sectnums:
+
+== 环境搭建
+
+=== 使用到的工具
+
+* Ubuntu 18.04
+* Intellij IDEA community edition
+* Hive(2.3.6)
+* Hadoop(2.7.7)
+* Spark(2.1.0)
+* ElasticSearch(6.5.1)
+* Kibana(6.5.1)
+* SpringBoot
+* Vue.js
+* Echarts.js
+
+=== Hadoop安装(单节点伪集群模式)
+
+进入root账户
+
+[source,bash]
+----
+$ sudo su
+----
+
+解压hadoop到特定目录
+
+[source,bash]
+----
+$ tar xvzf hadoop-2.7.7.tar.gz -C /usr/local/
+----
+
+添加环境变量到``.bashrc``或者``.zshrc``
+
+[source,bash]
+----
+export HADOOP_HOME=/usr/local/hadoop-2.7.7
+export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export YARN_HOME=$HADOOP_HOME
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib"
+
+export PATH=$PATH:$HADOOP_HOME/bin
+----
+
+然后
+
+[source,bash]
+----
+$ source .bashrc
+# or
+$ source .zshrc
+----
+
+=== Hive安装
+
+在root账户下
+
+[source,bash]
+----
+$ tar xvzf apache-hive-2.3.6-bin.tar.gz -C /usr/local
+----
+
+在``.bashrc``或者``.zshrc``中修改环境变量
+
+[source,bash]
+----
+$ export HIVE_HOME=/usr/local/apache-hive-2.3.6-bin
+$ export PATH=$PATH:$HIVE_HOME/bin
+----
+
+然后
+
+[source,bash]
+----
+$ source .bashrc
+# or
+$ source .zshrc
+----
+
+然后运行以下命令
+
+[source,bash]
+----
+$ hdfs dfs -mkdir -p /user/hive/warehouse
+$ hdfs dfs -mkdir /tmp
+----
+
+修改权限
+
+[source,bash]
+----
+$ hdfs dfs -chmod g+w /user/hive/warehouse
+$ hdfs dfs -chmod g+w /tmp
+----
+
+编辑``/usr/local/apache-hive-2.3.6-bin/conf``中的``hive-site.xml``文件，没有的话新建一个
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?><!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements. See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<configuration>
+    <property>
+        <name>javax.jdo.option.ConnectionURL</name>
+        <value>jdbc:mysql://localhost:3306/metastore?createDatabaseIfNotExist=true</value>
+        <description>
+JDBC connect string for a JDBC metastore.
+To use SSL to encrypt/authenticate the connection, provide database-specific SSL flag in the connection URL.
+For example, jdbc:postgresql://myhost/db?ssl=true for postgres database.
+        </description>
+    </property>
+    <property>
+        <name>hive.metastore.warehouse.dir</name>
+        <value>/user/hive/warehouse</value>
+        <description>location of default database for the warehouse</description>
+    </property>
+    <property>
+        <name>hive.metastore.uris</name>
+        <value/>
+        <description>Thrift URI for the remote metastore. Used by metastore client to connect to remote metastore.</description>
+    </property>
+    <property>
+        <name>javax.jdo.option.ConnectionDriverName</name>
+        <value>com.mysql.jdbc.Driver</value>
+        <description>Driver class name for a JDBC metastore</description>
+    </property>
+    <property>
+        <name>javax.jdo.option.ConnectionUserName</name>
+        <value>root</value>
+    </property>
+    <property>
+        <name>javax.jdo.option.ConnectionPassword</name>
+        <value>root</value>
+    </property>
+    <property>
+        <name>javax.jdo.PersistenceManagerFactoryClass</name>
+        <value>org.datanucleus.api.jdo.JDOPersistenceManagerFactory</value>
+        <description>class implementing the jdo persistence</description>
+    </property>
+</configuration>
+----
+
+注意我这里使用了``MySQL 5.7``来做Hive的元数据的管理。
+
+在文件``/usr/local/apache-hive-2.3.6-bin/conf/hive-env.sh``中加入环境变量
+
+[source,bash]
+----
+$ export HADOOP_HOME=/usr/local/hadoop-2.7.7
+$ export HADOOP_HEAPSIZE=512
+$ export HIVE_CONF_DIR=/usr/local/apache-hive-2.3.6-bin/conf
+$ export METASTORE_PORT=9083
+----
+
+初始化元数据存储
+
+[source,bash]
+----
+$ ./schematool -dbType mysql -initSchema root root
+----
+
+然后
+
+[source,bash]
+----
+$ hive --service metastore
+$ hive
+----
+
+== 导入数据
+
+[source,bash]
+----
+$ mysql -u root -p
+mysql> create database usertags charset=utf8;
+mysql> use usertags;
+mysql> source i_commodity.sql;
+mysql> source i_marketing.sql;
+mysql> source i_member.sql;
+mysql> source i_operation.sql;
+mysql> source i_order.sql;
+----
+
+解压``sqoop``压缩包
+
+[source,bash]
+----
+$ tar zxvf sqoop-1.4.6.bin__hadoop-2.0.4-alpha.tar.gz
+$ mv sqoop-1.4.6.bin__hadoop-2.0.4-alpha sqoop
+----
+
+将``jar``包拷贝到``sqoop``中去
+
+[source,bash]
+----
+$ cp mysql-connector-java-5.1.28.jar ./sqoop/lib
+----
+
+重命名配置文件
+
+[source,bash]
+----
+$ cd /opt/sqoop/conf
+$ mv sqoop-env-template.sh sqoop-env.sh
+----
+
+修改配置文件
+
+[source,bash]
+----
+$ vim sqoop-env.sh
+$ export HIVE_HOME=/opt/hive
+----
+
+用jdbc连接mysql查看信息
+
+[source,bash]
+----
+$ ./sqoop list-databases --connect jdbc:mysql://localhost:3306/ --username root --password root
+----
+
+进入hive
+
+[source,bash]
+----
+$ hive
+----
+
+建库
+
+[source,bash]
+----
+hive>create database usertags;
+----
+
+导入数据脚本：
+
+[source,bash]
+----
+#!/bin/sh
+
+sq()
+{
+./sqoop import \
+--connect jdbc:mysql://localhost:3306/usertags \
+--username root \
+--password root \
+--table $1 \
+--num-mappers 1 \
+--hive-import \
+--fields-terminated-by "\t" \
+--hive-overwrite \
+--hive-database usertags \
+--hive-table $1
+}
+
+sq t_commodity
+sq t_commodity_cate
+sq t_coupon
+sq t_coupon_member
+sq t_coupon_order
+sq t_delivery
+sq t_feedback
+sq t_member
+sq t_member_addr
+sq t_order
+sq t_order_commodity
+sq t_shop
+sq t_shop_order
+sq t_user
+----
+
+将``MySQL``中的表都导入到Hive中。
