@@ -197,6 +197,8 @@ $ hive
 
 == 导入数据
 
+腳本見``sql腳本``文件夾
+
 [source,bash]
 ----
 $ mysql -u root -p
