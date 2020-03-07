@@ -299,3 +299,121 @@ sq t_user
 ----
 
 将``MySQL``中的表都导入到Hive中。
+
+== 启动ElasticSearch
+
+[source,bash]
+----
+$ ./elasticsearch
+$ ./kibana
+----
+
+首先新建索引，最好使用Kibana控制台。
+
+[source,bash]
+----
+DELETE tag
+PUT tag
+----
+
+然后在索引中新建映射
+
+[source,bash]
+----
+PUT /tag/_doc/_mapping?pretty
+ {
+      "_doc": {
+        "properties": {
+          "channel": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword"
+              }
+            }
+          },
+          "chargeMoney": {
+            "type": "float"
+          },
+          "couponTimes": {
+            "type": "date"
+          },
+          "favGoods": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword"
+              }
+            }
+          },
+          "feedBack": {
+            "type": "long"
+          },
+          "freeCouponTime": {
+            "type": "date"
+          },
+          "memberId": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword"
+              }
+            }
+          },
+          "orderCount": {
+            "type": "long"
+          },
+          "orderMoney": {
+            "type": "float"
+          },
+          "orderTime": {
+            "type": "date"
+          },
+          "overTime": {
+            "type": "long"
+          },
+          "phone": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword"
+              }
+            }
+          },
+          "regTime": {
+            "type": "date"
+          },
+          "sex": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword"
+              }
+            }
+          },
+          "subOpenId": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword"
+              }
+            }
+          }
+        }
+      }
+    }
+----
+
+其他操作
+
+[source,bash]
+----
+GET /tag/_mapping
+GET /tag/_search
+{
+  # query dsl json here
+}
+DELETE /tag/_doc/l2Zqb28BzvITasB-oTzB
+----
+
+== 使用Intellij IDEA编写项目代码

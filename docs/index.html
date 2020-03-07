@@ -457,6 +457,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </ul>
 </li>
 <li><a href="#_导入数据">2. 导入数据</a></li>
+<li><a href="#_启动elasticsearch">3. 启动ElasticSearch</a></li>
+<li><a href="#_使用intellij_idea编写项目代码">4. 使用Intellij IDEA编写项目代码</a></li>
 </ul>
 </div>
 </div>
@@ -808,11 +810,139 @@ sq t_user</code></pre>
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_启动elasticsearch">3. 启动ElasticSearch</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="bash"><span></span>$ ./elasticsearch
+$ ./kibana</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>首先新建索引，最好使用Kibana控制台。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="bash"><span></span>DELETE tag
+PUT tag</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>然后在索引中新建映射</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="bash"><span></span>PUT /tag/_doc/_mapping?pretty
+ <span class="tok-o">{</span>
+      <span class="tok-s2">&quot;_doc&quot;</span>: <span class="tok-o">{</span>
+        <span class="tok-s2">&quot;properties&quot;</span>: <span class="tok-o">{</span>
+          <span class="tok-s2">&quot;channel&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;text&quot;</span>,
+            <span class="tok-s2">&quot;fields&quot;</span>: <span class="tok-o">{</span>
+              <span class="tok-s2">&quot;keyword&quot;</span>: <span class="tok-o">{</span>
+                <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;keyword&quot;</span>
+              <span class="tok-o">}</span>
+            <span class="tok-o">}</span>
+          <span class="tok-o">}</span>,
+          <span class="tok-s2">&quot;chargeMoney&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;float&quot;</span>
+          <span class="tok-o">}</span>,
+          <span class="tok-s2">&quot;couponTimes&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;date&quot;</span>
+          <span class="tok-o">}</span>,
+          <span class="tok-s2">&quot;favGoods&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;text&quot;</span>,
+            <span class="tok-s2">&quot;fields&quot;</span>: <span class="tok-o">{</span>
+              <span class="tok-s2">&quot;keyword&quot;</span>: <span class="tok-o">{</span>
+                <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;keyword&quot;</span>
+              <span class="tok-o">}</span>
+            <span class="tok-o">}</span>
+          <span class="tok-o">}</span>,
+          <span class="tok-s2">&quot;feedBack&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;long&quot;</span>
+          <span class="tok-o">}</span>,
+          <span class="tok-s2">&quot;freeCouponTime&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;date&quot;</span>
+          <span class="tok-o">}</span>,
+          <span class="tok-s2">&quot;memberId&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;text&quot;</span>,
+            <span class="tok-s2">&quot;fields&quot;</span>: <span class="tok-o">{</span>
+              <span class="tok-s2">&quot;keyword&quot;</span>: <span class="tok-o">{</span>
+                <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;keyword&quot;</span>
+              <span class="tok-o">}</span>
+            <span class="tok-o">}</span>
+          <span class="tok-o">}</span>,
+          <span class="tok-s2">&quot;orderCount&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;long&quot;</span>
+          <span class="tok-o">}</span>,
+          <span class="tok-s2">&quot;orderMoney&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;float&quot;</span>
+          <span class="tok-o">}</span>,
+          <span class="tok-s2">&quot;orderTime&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;date&quot;</span>
+          <span class="tok-o">}</span>,
+          <span class="tok-s2">&quot;overTime&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;long&quot;</span>
+          <span class="tok-o">}</span>,
+          <span class="tok-s2">&quot;phone&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;text&quot;</span>,
+            <span class="tok-s2">&quot;fields&quot;</span>: <span class="tok-o">{</span>
+              <span class="tok-s2">&quot;keyword&quot;</span>: <span class="tok-o">{</span>
+                <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;keyword&quot;</span>
+              <span class="tok-o">}</span>
+            <span class="tok-o">}</span>
+          <span class="tok-o">}</span>,
+          <span class="tok-s2">&quot;regTime&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;date&quot;</span>
+          <span class="tok-o">}</span>,
+          <span class="tok-s2">&quot;sex&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;text&quot;</span>,
+            <span class="tok-s2">&quot;fields&quot;</span>: <span class="tok-o">{</span>
+              <span class="tok-s2">&quot;keyword&quot;</span>: <span class="tok-o">{</span>
+                <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;keyword&quot;</span>
+              <span class="tok-o">}</span>
+            <span class="tok-o">}</span>
+          <span class="tok-o">}</span>,
+          <span class="tok-s2">&quot;subOpenId&quot;</span>: <span class="tok-o">{</span>
+            <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;text&quot;</span>,
+            <span class="tok-s2">&quot;fields&quot;</span>: <span class="tok-o">{</span>
+              <span class="tok-s2">&quot;keyword&quot;</span>: <span class="tok-o">{</span>
+                <span class="tok-s2">&quot;type&quot;</span>: <span class="tok-s2">&quot;keyword&quot;</span>
+              <span class="tok-o">}</span>
+            <span class="tok-o">}</span>
+          <span class="tok-o">}</span>
+        <span class="tok-o">}</span>
+      <span class="tok-o">}</span>
+    <span class="tok-o">}</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>其他操作</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="bash"><span></span>GET /tag/_mapping
+GET /tag/_search
+<span class="tok-o">{</span>
+  <span class="tok-c1"># query dsl json here</span>
+<span class="tok-o">}</span>
+DELETE /tag/_doc/l2Zqb28BzvITasB-oTzB</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_使用intellij_idea编写项目代码">4. 使用Intellij IDEA编写项目代码</h2>
+<div class="sectionbody">
+
+</div>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
 Version 1.0<br>
-Last updated 2020-03-07 11:07:00 +0800
+Last updated 2020-03-07 17:45:13 +0800
 </div>
 </div>
 <style>
