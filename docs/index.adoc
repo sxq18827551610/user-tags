@@ -417,3 +417,5 @@ DELETE /tag/_doc/l2Zqb28BzvITasB-oTzB
 ----
 
 == 使用Intellij IDEA编写项目代码
+
+安装``lombok``插件
