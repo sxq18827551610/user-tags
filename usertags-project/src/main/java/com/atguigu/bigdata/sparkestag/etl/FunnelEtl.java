@@ -2,8 +2,6 @@ package com.atguigu.bigdata.sparkestag.etl;
 
 import com.atguigu.bigdata.sparkestag.support.SparkUtils;
 import lombok.Data;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -11,15 +9,19 @@ import org.apache.spark.sql.SparkSession;
 public class FunnelEtl {
     public static FunnelVo funnel(SparkSession session){
         // 订单 复购 充值
+        // 查询下过订单的用户
         Dataset<Row> orderMember = session.sql("select distinct(member_id) from usertags.t_order " +
                 "where order_status=2");
+        // 将购买次数超过 1 次的用户查出来
         Dataset<Row> orderAgainMember = session.sql("select t.member_id as member_id " +
                 "from (select count(order_id) as orderCount,member_id from usertags.t_order " +
                 " where order_status=2 group by member_id) as t where t.orderCount>1");
 
+        // 查询充值过的用户
         Dataset<Row> charge = session.sql("select distinct(member_id) as member_id " +
                 "from usertags.t_coupon_member where coupon_channel = 1");
 
+        // 复购的用户和充值的用户进行联接查询
         Dataset<Row> join = charge.join(orderAgainMember, orderAgainMember.col("member_id")
                 .equalTo(charge.col("member_id")), "inner");
         long order = orderMember.count();

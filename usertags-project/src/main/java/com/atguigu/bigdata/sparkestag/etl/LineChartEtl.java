@@ -27,6 +27,7 @@ public class LineChartEtl {
         Date sevenDayBefore = DateUtil.addDay(nowDay, -8);
 
         // regCount , memberCount (id auto increment)
+        // 近七天注册人数统计
         String memberSql = "select date_format(create_time,'yyyy-MM-dd') as day," +
                 " count(id) as regCount, max(id) as memberCount " +
                 " from usertags.t_member where create_time >='%s' " +
@@ -35,6 +36,7 @@ public class LineChartEtl {
         Dataset<Row> memberDs = session.sql(memberSql);
 
         // orderCount , gmv (t_order , id auto increment)
+        // 近七天订单和流水统计
         String orderSql = "select date_format(create_time,'yyyy-MM-dd') as day," +
                 " max(order_id) orderCount, sum(origin_price) as gmv" +
                 " from usertags.t_order where create_time >='%s' " +
@@ -43,6 +45,7 @@ public class LineChartEtl {
         orderSql = String.format(orderSql, DateUtil.DateToString(sevenDayBefore, DateStyle.YYYY_MM_DD_HH_MM_SS));
         Dataset<Row> orderDs = session.sql(orderSql);
         // left join a on a.id = b.id
+        // 联接查询
         Dataset<Tuple2<Row, Row>> tuple2Dataset = memberDs.joinWith(orderDs, memberDs.col("day").equalTo(orderDs.col("day")), "inner");
 
         List<Tuple2<Row, Row>> tuple2s = tuple2Dataset.collectAsList();
@@ -69,6 +72,7 @@ public class LineChartEtl {
             vos.add(lineVo);
         }
 
+        // 近七天之前的流水总和
         String gmvTotal = "select sum(origin_price) as totalGmv from i_order.t_order where create_time <'%s'";
         gmvTotal = String.format(gmvTotal, DateUtil.DateToString(sevenDayBefore, DateStyle.YYYY_MM_DD_HH_MM_SS));
         Dataset<Row> gmvDs = session.sql(gmvTotal);

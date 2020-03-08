@@ -20,7 +20,7 @@ public class MemberEtl {
      */
     public static List<MemberSex> memberSex(SparkSession session) {
         Dataset<Row> dataset = session.sql("select sex as memberSex, count(id) as sexCount " +
-                " from i_member.t_member group by sex");
+                " from usertags.t_member group by sex");
         List<String> list = dataset.toJSON().collectAsList();
 //        System.out.println(JSON.toJSONString(list));
         List<MemberSex> collect = list.stream()
@@ -39,7 +39,7 @@ public class MemberEtl {
      */
     public static List<MemberChannel> memberRegChannel(SparkSession session) {
         Dataset<Row> dataset = session.sql("select member_channel as memberChannel, count(id) as channelCount " +
-                " from i_member.t_member group by member_channel");
+                " from usertags.t_member group by member_channel");
         List<String> list = dataset.toJSON().collectAsList();
         List<MemberChannel> collect = list.stream()
                 .map(str -> JSON.parseObject(str, MemberChannel.class))
@@ -58,7 +58,7 @@ public class MemberEtl {
     public static List<MemberMpSub> memberMpSub(SparkSession session) {
         Dataset<Row> sub = session.sql("select count(if(mp_open_id !='null',id,null)) as subCount, " +
                 " count(if(mp_open_id ='null',id,null)) as unSubCount " +
-                " from i_member.t_member");
+                " from usertags.t_member");
         List<String> list = sub.toJSON().collectAsList();
         List<MemberMpSub> collect = list.stream()
                 .map(str -> JSON.parseObject(str, MemberMpSub.class))
@@ -82,15 +82,15 @@ public class MemberEtl {
 
         Dataset<Row> reg_complete = session.sql("select count(if(phone='null',id,null)) as reg," +
                 " count(if(phone !='null',id,null)) as complete " +
-                " from i_member.t_member");
+                " from usertags.t_member");
 
         // order,orderAgain
         Dataset<Row> order_again = session.sql("select count(if(t.orderCount =1,t.member_id,null)) as order," +
                 "count(if(t.orderCount >=2,t.member_id,null)) as orderAgain from " +
-                "(select count(order_id) as orderCount,member_id from i_order.t_order group by member_id) as t");
+                "(select count(order_id) as orderCount,member_id from usertags.t_order group by member_id) as t");
 
         // coupon
-        Dataset<Row> coupon = session.sql("select count(distinct member_id) as coupon from i_marketing.t_coupon_member ");
+        Dataset<Row> coupon = session.sql("select count(distinct member_id) as coupon from usertags.t_coupon_member ");
 
         Dataset<Row> result = coupon.crossJoin(reg_complete).crossJoin(order_again);
 

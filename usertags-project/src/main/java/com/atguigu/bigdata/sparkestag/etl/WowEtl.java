@@ -35,7 +35,7 @@ public class WowEtl {
 
         // date_format(日期字段,'yyyy-MM-dd')
         String sql = "select date_format(create_time,'yyyy-MM-dd') as day," +
-                " count(id) as regCount from i_member.t_member where create_time >='%s' " +
+                " count(id) as regCount from usertags.t_member where create_time >='%s' " +
                 " and create_time < '%s' group by date_format(create_time,'yyyy-MM-dd')";
         sql = String.format(sql, DateUtil.DateToString(lastDaySeven, DateStyle.YYYY_MM_DD_HH_MM_SS),
                 DateUtil.DateToString(nowDaySeven, DateStyle.YYYY_MM_DD_HH_MM_SS));
@@ -60,7 +60,7 @@ public class WowEtl {
         // i_order.t_order
 
         String sql = "select date_format(create_time,'yyyy-MM-dd') as day," +
-                " count(order_id) as orderCount from i_order.t_order where create_time >='%s' and create_time < '%s' " +
+                " count(order_id) as orderCount from usertags.t_order where create_time >='%s' and create_time < '%s' " +
                 " group by date_format(create_time,'yyyy-MM-dd')";
         sql = String.format(sql, DateUtil.DateToString(lastDaySeven, DateStyle.YYYY_MM_DD_HH_MM_SS),
                 DateUtil.DateToString(nowDaySeven, DateStyle.YYYY_MM_DD_HH_MM_SS));

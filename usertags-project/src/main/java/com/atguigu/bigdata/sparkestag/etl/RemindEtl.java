@@ -29,7 +29,7 @@ public class RemindEtl {
         Date pickDay = DateUtil.addDay(tomorrow, -8);
 
         String sql ="select date_format(create_time,'yyyy-MM-dd') as day,count(member_id) as freeCount " +
-                " from i_marketing.t_coupon_member where coupon_id = 1 " +
+                " from usertags.t_coupon_member where coupon_id = 1 " +
                 " and coupon_channel = 2 and create_time >= '%s' " +
                 " group by date_format(create_time,'yyyy-MM-dd')";
         sql = String.format(sql,DateUtil.DateToString(pickDay, DateStyle.YYYY_MM_DD_HH_MM_SS));
@@ -51,7 +51,7 @@ public class RemindEtl {
         Date pickDay = DateUtil.addDay(tomorrow, -8);
 
         String sql ="select date_format(create_time,'yyyy-MM-dd') as day,count(member_id) as couponCount " +
-                " from i_marketing.t_coupon_member where coupon_id != 1 " +
+                " from usertags.t_coupon_member where coupon_id != 1 " +
                 " and create_time >= '%s' " +
                 " group by date_format(create_time,'yyyy-MM-dd')";
         sql = String.format(sql,DateUtil.DateToString(pickDay, DateStyle.YYYY_MM_DD_HH_MM_SS));
