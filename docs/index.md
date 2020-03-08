@@ -1,16 +1,12 @@
-= 尚硅谷用户标签项目文档
-尚硅谷大数据讲师左元 <zuoyuan@atguigu.com>
-v1.0, 2019-06-01
-:icons: font
-:source-highlighter: pygments
-:toc: left
-:toclevels: 4
-:imagesdir: images
-:sectnums:
+---
+title: 尚硅谷用户标签项目文档
+author: 左元
+date: February 15, 2020
+---
 
-== 环境搭建
+# 环境搭建
 
-=== 使用到的工具
+## 使用到的工具
 
 * Ubuntu 18.04
 * Intellij IDEA community edition
@@ -23,26 +19,23 @@ v1.0, 2019-06-01
 * Vue.js
 * Echarts.js
 
-=== Hadoop安装(单节点伪集群模式)
+## Hadoop安装(单节点伪集群模式)
 
 进入root账户
 
-[source,bash]
-----
+```sh
 $ sudo su
-----
+```
 
 解压hadoop到特定目录
 
-[source,bash]
-----
+```sh
 $ tar xvzf hadoop-2.7.7.tar.gz -C /usr/local/
-----
+```
 
-添加环境变量到``.bashrc``或者``.zshrc``
+添加环境变量到`.bashrc`或者`.zshrc`
 
-[source,bash]
-----
+```sh
 export HADOOP_HOME=/usr/local/hadoop-2.7.7
 export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
 export HADOOP_MAPRED_HOME=$HADOOP_HOME
@@ -53,63 +46,56 @@ export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
 export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib"
 
 export PATH=$PATH:$HADOOP_HOME/bin
-----
+```
 
 然后
 
-[source,bash]
-----
+```sh
 $ source .bashrc
 # or
 $ source .zshrc
-----
+```
 
-=== Hive安装
+## Hive安装
 
 在root账户下
 
-[source,bash]
-----
+```sh
 $ tar xvzf apache-hive-2.3.6-bin.tar.gz -C /usr/local
-----
+```
 
-在``.bashrc``或者``.zshrc``中修改环境变量
+在`.bashrc`或者`.zshrc`中修改环境变量
 
-[source,bash]
-----
+```sh
 $ export HIVE_HOME=/usr/local/apache-hive-2.3.6-bin
 $ export PATH=$PATH:$HIVE_HOME/bin
-----
+```
 
 然后
 
-[source,bash]
-----
+```sh
 $ source .bashrc
 # or
 $ source .zshrc
-----
+```
 
 然后运行以下命令
 
-[source,bash]
-----
+```sh
 $ hdfs dfs -mkdir -p /user/hive/warehouse
 $ hdfs dfs -mkdir /tmp
-----
+```
 
 修改权限
 
-[source,bash]
-----
+```sh
 $ hdfs dfs -chmod g+w /user/hive/warehouse
 $ hdfs dfs -chmod g+w /tmp
-----
+```
 
-编辑``/usr/local/apache-hive-2.3.6-bin/conf``中的``hive-site.xml``文件，没有的话新建一个
+编辑`/usr/local/apache-hive-2.3.6-bin/conf`中的`hive-site.xml`文件，没有的话新建一个
 
-[source,xml]
-----
+```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?><!--
 Licensed to the Apache Software Foundation (ASF) under one or more
@@ -166,41 +152,37 @@ For example, jdbc:postgresql://myhost/db?ssl=true for postgres database.
         <description>class implementing the jdo persistence</description>
     </property>
 </configuration>
-----
+```
 
-注意我这里使用了``MySQL 5.7``来做Hive的元数据的管理。
+注意我这里使用了`MySQL 5.7`来做Hive的元数据的管理。
 
-在文件``/usr/local/apache-hive-2.3.6-bin/conf/hive-env.sh``中加入环境变量
+在文件`/usr/local/apache-hive-2.3.6-bin/conf/hive-env.sh`中加入环境变量
 
-[source,bash]
-----
+```sh
 $ export HADOOP_HOME=/usr/local/hadoop-2.7.7
 $ export HADOOP_HEAPSIZE=512
 $ export HIVE_CONF_DIR=/usr/local/apache-hive-2.3.6-bin/conf
 $ export METASTORE_PORT=9083
-----
+```
 
 初始化元数据存储
 
-[source,bash]
-----
+```sh
 $ ./schematool -dbType mysql -initSchema root root
-----
+```
 
 然后
 
-[source,bash]
-----
+```sh
 $ hive --service metastore
 $ hive
-----
+```
 
-== 导入数据
+# 导入数据
 
-腳本見``sql腳本``文件夾
+腳本見`sql腳本`文件夾
 
-[source,bash]
-----
+```sh
 $ mysql -u root -p
 mysql> create database usertags charset=utf8;
 mysql> use usertags;
@@ -209,64 +191,56 @@ mysql> source i_marketing.sql;
 mysql> source i_member.sql;
 mysql> source i_operation.sql;
 mysql> source i_order.sql;
-----
+```
 
-解压``sqoop``压缩包
+解压`sqoop`压缩包
 
-[source,bash]
-----
+```sh
 $ tar zxvf sqoop-1.4.6.bin__hadoop-2.0.4-alpha.tar.gz
 $ mv sqoop-1.4.6.bin__hadoop-2.0.4-alpha sqoop
-----
+```
 
-将``jar``包拷贝到``sqoop``中去
+将`jar`包拷贝到`sqoop`中去
 
-[source,bash]
-----
+```sh
 $ cp mysql-connector-java-5.1.28.jar ./sqoop/lib
-----
+```
 
 重命名配置文件
 
-[source,bash]
-----
+```sh
 $ cd /opt/sqoop/conf
 $ mv sqoop-env-template.sh sqoop-env.sh
-----
+```
 
 修改配置文件
 
-[source,bash]
-----
+```sh
 $ vim sqoop-env.sh
 $ export HIVE_HOME=/opt/hive
-----
+```
 
 用jdbc连接mysql查看信息
 
-[source,bash]
-----
+```sh
 $ ./sqoop list-databases --connect jdbc:mysql://localhost:3306/ --username root --password root
-----
+```
 
 进入hive
 
-[source,bash]
-----
+```sh
 $ hive
-----
+```
 
 建库
 
-[source,bash]
-----
+```sh
 hive>create database usertags;
-----
+```
 
 导入数据脚本：
 
-[source,bash]
-----
+```sh
 #!/bin/sh
 
 sq()
@@ -298,30 +272,27 @@ sq t_order_commodity
 sq t_shop
 sq t_shop_order
 sq t_user
-----
+```
 
-将``MySQL``中的表都导入到Hive中。
+将`MySQL`中的表都导入到Hive中。
 
-== 启动ElasticSearch
+# 启动ElasticSearch
 
-[source,bash]
-----
+```sh
 $ ./elasticsearch
 $ ./kibana
-----
+```
 
 首先新建索引，最好使用Kibana控制台。
 
-[source,bash]
-----
+```sh
 DELETE tag
 PUT tag
-----
+```
 
 然后在索引中新建映射
 
-[source,bash]
-----
+```sh
 PUT /tag/_doc/_mapping?pretty
  {
       "_doc": {
@@ -404,20 +375,19 @@ PUT /tag/_doc/_mapping?pretty
         }
       }
     }
-----
+```
 
 其他操作
 
-[source,bash]
-----
+```sh
 GET /tag/_mapping
 GET /tag/_search
 {
   # query dsl json here
 }
 DELETE /tag/_doc/l2Zqb28BzvITasB-oTzB
-----
+```
 
-== 使用Intellij IDEA编写项目代码
+# 使用Intellij IDEA编写项目代码
 
-安装``lombok``插件
+安装`lombok`插件
