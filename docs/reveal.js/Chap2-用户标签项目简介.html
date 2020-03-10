@@ -1,0 +1,253 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>reveal.js</title>
+
+		<link rel="stylesheet" href="css/reset.css">
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/monokai.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+        </script>
+
+        <style>
+            .reveal { font-size: 2em; }
+        </style>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+                <section>
+                    <h2>项目架构图</h2>
+                    <img src="10.png" height="450">
+                </section>
+				<section data-markdown>
+                    ## 计算的指标
+                    - 词云
+                    - 增长（用户数量，收入，订单数量）
+                    - 流量统计（性别，渠道，热度，关注）
+                    - 环比（按周计算）
+                    - 优惠券统计
+                    - 漏斗图
+                </section>
+				<section>
+                    <h3>词云</h3>
+                    <img src="4.png" height="450">
+                </section>
+                <section data-markdown>
+                    ### 词云计算规则
+                    - 直接使用空格进行分词，然后统计热词(`HotWordEtl.java`)
+                    - 更加复杂的分词算法：
+                      - TF-IDF
+                      - 词向量(word embedding)
+                </section>
+                <section data-markdown>
+                    ### 增长
+                    ![](5.png)
+                </section>
+                <section data-markdown>
+                    ### 近七天注册人数增长折线
+                    - 思路：按天做聚合计算，以用户注册数量举例，其他需求雷同
+                    - 代码文件：`LineChartEtl.java`
+                    ```java
+                    String memberSql = "select date_format(create_time,'yyyy-MM-dd') as day," +
+                            " count(id) as regCount, max(id) as memberCount " +
+                            " from usertags.t_member where create_time >='%s' " +
+                            " group by date_format(create_time,'yyyy-MM-dd') order by day";
+                    memberSql = String.format(memberSql, DateUtil.DateToString(sevenDayBefore, DateStyle.YYYY_MM_DD_HH_MM_SS));
+                    Dataset<Row> memberDs = session.sql(memberSql);
+                    ```
+                </section>
+                <section data-markdown>
+                    ### 流量统计
+                    ![](6.png)
+                </section>
+                <section data-markdown>
+                    ### 流量统计举例（以性别举例）
+                    - 代码文件：`MemberEtl.java`
+                    ```java
+                    public static List<MemberSex> memberSex(SparkSession session) {
+                        Dataset<Row> dataset = session.sql("select sex as memberSex, count(id) as sexCount " +
+                                " from usertags.t_member group by sex");
+                        List<String> list = dataset.toJSON().collectAsList();
+                        List<MemberSex> collect = list.stream()
+                                .map(str -> JSON.parseObject(str, MemberSex.class))
+                                .collect(Collectors.toList());
+                        return collect;
+                    }
+                    ```
+                </section>
+                <section data-markdown>
+                    ### 环比
+                    ![](7.png)
+                </section>
+                <section data-markdown>
+                    ### 环比计算代码
+                    - 代码文件：`WowEtl.java`
+                    ```java
+                    String sql = "select date_format(create_time,'yyyy-MM-dd') as day," +
+                            " count(id) as regCount from usertags.t_member where create_time >='%s' " +
+                            " and create_time < '%s' group by date_format(create_time,'yyyy-MM-dd')";
+                    sql = String.format(sql, DateUtil.DateToString(lastDaySeven, DateStyle.YYYY_MM_DD_HH_MM_SS),
+                            DateUtil.DateToString(nowDaySeven, DateStyle.YYYY_MM_DD_HH_MM_SS));
+                    Dataset<Row> dataset = session.sql(sql);
+                    ```
+                </section>
+                <section data-markdown>
+                    ### 优惠券统计
+                    ![](8.png)
+                </section>
+                <section data-markdown>
+                    ### 优惠券统计计算代码
+                    - 代码文件：`RemindEtl.java`
+                    ```java
+                    String sql ="select date_format(create_time,'yyyy-MM-dd') as day,count(member_id) as freeCount " +
+                            " from usertags.t_coupon_member where coupon_id = 1 " +
+                            " and coupon_channel = 2 and create_time >= '%s' " +
+                            " group by date_format(create_time,'yyyy-MM-dd')";
+                    sql = String.format(sql,DateUtil.DateToString(pickDay, DateStyle.YYYY_MM_DD_HH_MM_SS));
+                    Dataset<Row> dataset = session.sql(sql);
+                    ```
+                </section>
+                <section data-markdown>
+                    ### 漏斗图
+                    ![](9.png)
+                </section>
+                <section data-markdown>
+                    ### 漏斗图计算
+                    - 漏斗图能直观的看出转化率
+                    - 代码文件：`FunnelEtl.java`
+                    - 以购买多余1次的查询计算为例
+                    ```java
+                    Dataset<Row> orderAgainMember = session.sql("select t.member_id as member_id " +
+                            "from (select count(order_id) as orderCount,member_id from usertags.t_order " +
+                            " where order_status=2 group by member_id) as t where t.orderCount>1");
+                    ```
+                </section>
+                <section>
+                    <h2>用户标签功能实现</h2>
+                    <img src="11.png" height="450">
+                </section>
+                <section data-markdown>
+                    ## 用户标签功能实现
+                    - ElasticSearch中的索引：`tag`
+                    - `tag`索引中`mapping`的定义：见文档。
+                </section>
+                <section data-markdown>
+                    ### 查询用户表
+                    ```java
+                    Dataset<Row> member = session.sql("select id as memberId,phone,sex,member_channel as channel,mp_open_id as subOpenId," +
+                            " address_default_id as address,date_format(create_time,'yyyy-MM-dd') as regTime" +
+                            " from usertags.t_member");
+                    ```
+                </section>
+                <section data-markdown>
+                    ### 查询订单表和商品表
+                    ```java
+                    Dataset<Row> order_commodity = session.sql("select o.member_id as memberId," +
+                            " date_format(max(o.create_time),'yyyy-MM-dd') as orderTime," +
+                            " count(o.order_id) as orderCount," +
+                            " collect_list(DISTINCT oc.commodity_id) as favGoods, " +
+                            " sum(o.pay_price) as orderMoney " +
+                            " from usertags.t_order as o left join usertags.t_order_commodity as oc" +
+                            " on o.order_id = oc.order_id group by o.member_id");
+                    ```
+                </section>
+                <section data-markdown>
+                    ### 查询优惠券表
+                    ```java
+                    Dataset<Row> freeCoupon = session.sql("select member_id as memberId, " +
+                            " date_format(create_time,'yyyy-MM-dd') as freeCouponTime " +
+                            " from usertags.t_coupon_member where coupon_id = 1");
+                    
+                    Dataset<Row> couponTimes = session.sql("select member_id as memberId," +
+                            " collect_list(date_format(create_time,'yyyy-MM-dd')) as couponTimes" +
+                            "  from usertags.t_coupon_member where coupon_id !=1 group by member_id");
+                    ```
+                </section>
+                <section data-markdown>
+                    ### 查询充值
+                    ```java
+                    Dataset<Row> chargeMoney = session.sql("select cm.member_id as memberId , sum(c.coupon_price/2) as chargeMoney " +
+                            " from usertags.t_coupon_member as cm left join usertags.t_coupon as c " +
+                            " on cm.coupon_id = c.id where cm.coupon_channel = 1 group by cm.member_id");
+                    ```
+                </section>
+                <section data-markdown>
+                    ### 查询快递超时
+                    ```java
+                    Dataset<Row> overTime = session.sql("select (to_unix_timestamp(max(arrive_time)) - to_unix_timestamp(max(pick_time))) " +
+                            " as overTime, member_id as memberId " +
+                            " from usertags.t_delivery group by member_id");
+                    ```
+                </section>
+                <section data-markdown>
+                    ### 查询用户反馈
+                    ```java
+                    Dataset<Row> feedback = session.sql("select fb.feedback_type as feedback,fb.member_id as memberId" +
+                            " from usertags.t_feedback as fb " +
+                            " left join (select max(id) as mid,member_id as memberId " +
+                            " from usertags.t_feedback group by member_id) as t " +
+                            " on fb.id = t.mid");
+                    ```
+                </section>
+                <section data-markdown>
+                    ### 构建联结查询
+                    ```java
+                    Dataset<Row> result = session.sql("select m.*,o.orderCount,o.orderTime,o.orderMoney,o.favGoods," +
+                            " fb.freeCouponTime,ct.couponTimes, cm.chargeMoney,ot.overTime,f.feedBack" +
+                            " from member as m " +
+                            " left join oc as o on m.memberId = o.memberId " +
+                            " left join freeCoupon as fb on m.memberId = fb.memberId " +
+                            " left join couponTimes as ct on m.memberId = ct.memberId " +
+                            " left join chargeMoney as cm on m.memberId = cm.memberId " +
+                            " left join overTime as ot on m.memberId = ot.memberId " +
+                            " left join feedback as f on m.memberId = f.memberId ");
+                    ```
+                </section>
+                <section data-markdown>
+                    ### 将结果写入ES
+                    ```java
+                    JavaEsSparkSQL.saveToEs(result,"/tag/_doc");
+                    ```
+                    - 我们使用的`left join`
+                    - 这样可以查询只符合一部分查询条件的用户
+                </section>
+                <section data-markdown>
+                    ### Web端架构
+                    - 前端：Vuejs
+                    - 后端：SpringBoot来构建查询条件
+                </section>
+			</div>
+		</div>
+
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info about config & dependencies:
+			// - https://github.com/hakimel/reveal.js#configuration
+			// - https://github.com/hakimel/reveal.js#dependencies
+			Reveal.initialize({
+				hash: true,
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/highlight/highlight.js' },
+                    { src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+		</script>
+	</body>
+</html>

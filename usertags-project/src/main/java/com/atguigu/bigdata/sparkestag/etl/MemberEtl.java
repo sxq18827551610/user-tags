@@ -22,13 +22,10 @@ public class MemberEtl {
         Dataset<Row> dataset = session.sql("select sex as memberSex, count(id) as sexCount " +
                 " from usertags.t_member group by sex");
         List<String> list = dataset.toJSON().collectAsList();
-//        System.out.println(JSON.toJSONString(list));
         List<MemberSex> collect = list.stream()
                 .map(str -> JSON.parseObject(str, MemberSex.class))
                 .collect(Collectors.toList());
-
         return collect;
-
     }
 
     /**
