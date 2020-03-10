@@ -1,6 +1,6 @@
-= 尚硅谷Flink教程
+= 尚硅谷用户标签项目教程
 尚硅谷大数据讲师左元 <zuoyuan@atguigu.com>
-v1.0, 2019-06-01
+v1.0, 2020-03-10
 :icons: font
 :source-highlighter: pygments
 :toc: left
@@ -421,3 +421,7 @@ DELETE /tag/_doc/l2Zqb28BzvITasB-oTzB
 == 使用Intellij IDEA编写项目代码
 
 安装 `lombok` 插件
+
+== 幻灯片
+
+link:reveal.js/Chap1-用户画像基础知识.html[第一章-用户画像基础知识]
