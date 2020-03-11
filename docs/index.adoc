@@ -425,4 +425,7 @@ DELETE /tag/_doc/l2Zqb28BzvITasB-oTzB
 == 幻灯片
 
 link:reveal.js/Chap1-用户画像基础知识.html[第一章-用户画像基础知识]
+
 link:reveal.js/Chap2-用户标签项目简介.html[第二章-用户标签项目简介]
+
+link:reveal.js/Chap3-用户标签其他设计思路.html[第三章-用户标签项目其他设计思路]

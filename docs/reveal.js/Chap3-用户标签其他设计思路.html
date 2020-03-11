@@ -1,0 +1,247 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>reveal.js</title>
+
+		<link rel="stylesheet" href="css/reset.css">
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/monokai.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section data-markdown>
+                    ## 其他设计思路
+                    - 不使用ES
+                    - 使用Hive存储用户标签
+                </section>
+				<section data-markdown>
+                    ## 标签表设计(userid)
+                    - 该表下面记录了标签id、用户id、标签权重等主要字段。按日期和标签主题作为分区。标签主题也作为分区是为了做ETL调度时方便，可以同时计算多个标签插入到该表下面。
+                    ```sql
+                    CREATE TABLE `dw.profile_tag_userid`(
+                    `tagid` string COMMENT 'tagid',
+                    `userid` string COMMENT 'userid',
+                    `tagweight` string COMMENT 'tagweight',
+                    `reserve1` string COMMENT '预留1',
+                    `reserve2` string COMMENT '预留2',
+                    `reserve3` string COMMENT '预留3')
+                    COMMENT 'tagid维度userid 用户画像数据'
+                    PARTITIONED BY ( `data_date` string COMMENT '数据日期', `tagtype` string COMMENT '标签主题分类')
+                    ```
+                </section>
+                <section data-markdown>
+                    ## 标签表设计(cookieid)
+                    ```sql
+                    CREATE TABLE `dw.profile_tag_cookieid`(
+                    `tagid` string COMMENT 'tagid',
+                    `cookieid` string COMMENT 'cookieid',
+                    `tagweight` string COMMENT '标签权重',
+                    `reserve1` string COMMENT '预留1',
+                    `reserve2` string COMMENT '预留2',
+                    `reserve3` string COMMENT '预留3')
+                    COMMENT 'tagid维度的用户cookie画像数据'
+                    PARTITIONED BY ( `data_date` string COMMENT '数据日期', `tagtype` string COMMENT '标签主题分类')
+                    ```
+                </section>
+                <section data-markdown>
+                    ## 示例
+                    对于用户是男是女这个标签，标签主题是用户属性，标签类型属于分类型，开发方式为统计型，为互斥关系，用户维度为userid。这样给男性用户打上标签“A111U001_001”，女性用户打上标签“A111U001_002”，其中“A111U”为上面介绍的命名方式，“001”为一级标签的id，后面对于用户属性维度的其他一级标签可用“002”、“003”等方式追加命名，“_”后面的“001”和“002”为该一级标签下的标签明细，如果是划分高、中、低活跃用户的，对应一级标签下的明细可划分为“001”、“002”、“003”。
+                </section>
+                <section data-markdown>
+                    ## 示例
+                    ![](12.png)
+                </section>
+                <section data-markdown>
+                    ## 查询结果示例
+                    ![](13.png)
+                </section>
+                <section data-markdown>
+                    ## 标签聚合表代码(按照userid聚合)
+                    ```sql
+                    CREATE TABLE `dw.profile_user_map_userid`(
+                    `userid` string COMMENT 'userid',
+                    `tagsmap` map<string,string> COMMENT 'tagsmap',
+                    `reserve1` string COMMENT '预留1',
+                    `reserve2` string COMMENT '预留2')
+                    COMMENT 'userid 用户画像数据'
+                    PARTITIONED BY (`data_date` string COMMENT '数据日期')
+                    ```
+                </section>
+                <section data-markdown>
+                    ## 标签聚合逻辑
+                    ```sql
+                        insert overwrite table dw.profile_user_map_userid  partition(data_date="20180421")
+                        select userid,
+                               str_to_map(concat_ws(',',collect_set(concat(tagid,':',tagweight)))) as tagsmap,
+                               '',
+                               ''
+                          from dw.profile_tag_userid
+                         where data_date="20180421"
+                      group by userid
+                    ```
+                </section>
+                <section data-markdown>
+                    ## 查询结果展示
+                    ![](14.png)
+                </section>
+                <section data-markdown>
+                    ## 按照cookieid聚合标签
+                    ```sql
+                    CREATE TABLE `dw.profile_user_map_cookieid`(
+                    `cookieid` string COMMENT 'tagid',
+                    `tagsmap` map<string,string> COMMENT 'cookieid',
+                    `reserve1` string COMMENT '预留1',
+                    `reserve2` string COMMENT '预留2')
+                    COMMENT 'cookie 用户画像数据'
+                    PARTITIONED BY (`data_date` string COMMENT '数据日期')
+                    ```
+                </section>
+                <section data-markdown>
+                    ## 总结
+                    从dw.profile_tag_userid到dw.profile_user_map_userid，实际是将同一个用户的多个标签聚合在一起。在tag表中，通过设置标签类型这一分区字段的形式，将每个用户身上的多个标签存储在了不同的分区下面。通过tag-map表，将一个用户的全部标签聚合在了一起。
+                </section>
+                <section data-markdown>
+                    ## 用户人群表
+                    - 用户人群表主要记录了用户的id、人群名称id以及推送到的业务系统
+                    ```sql
+                    CREATE TABLE `dw.profile_user_group`(
+                    `id` string,
+                    `userid` string,
+                    `tagsmap` map<string,string>,
+                    `reserve` string,
+                    `reserve1` string)
+                    PARTITIONED BY (`data_date` string, `target` string)
+                    ```
+                </section>
+                <section data-markdown>
+                    ## 查询示例
+                    ```scala
+                    val tablename = "dw.profile_usergroup_tag"
+
+                    val dataset = spark.sql(
+                      s"""
+                         |     select t1.userid,t2.order_sn,t3.tel
+                         |       from $(tablename) t1
+                         | inner join dw.paid_order_fact t2
+                         |         on t1.userid = t2.user_id
+                         | inner join dw.order_user_info t3
+                         |         on t2.order_id = t3.order_id
+                         | where t1.data_date = '${data_date}'
+                         |   and t1.target = "100000207486"
+                         | group by t1.userid,t3.tel
+                         | having t3.tel <> ''
+                       """.stripMargin)
+                    ```
+                </section>
+                <section data-markdown>
+                    ## 代码解释
+                    这里通过人群表t1 join了t2订单表，得到用户的订单编号，然后通过t2订单表join用户收货信息表t3，得到用户的手机号；这样通过圈定人群可以得到一批运营用户及他们的手机号，可以推送给外呼中心进行外呼操作。
+                </section>
+                <section data-markdown>
+                    ## 标签元数据存储
+                    - 例如可以存储到MySQL中
+                    ![](15.png)
+                </section>
+                <section data-markdown>
+                    ## HBase使用
+                    - 可以将Hive中的数据同步到HBase中
+                    - 我们项目使用的是ElasticSearch
+                </section>
+                <section data-markdown>
+                    ## 同步代码
+                    - 启动Hive
+                    - 创建一张映射到hbase的hive表
+                    - 写入数据
+                    ```sql
+                    CREATE TABLE dw.userprofile_hive_2_hbase
+                    (key string,
+                    value string)
+                    STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+                    WITH SERDEPROPERTIES ("hbase.columns.mapping" = ":key,cf1:val")
+                    TBLPROPERTIES ("hbase.table.name" = "userprofile_hbase");
+
+                    INSERT OVERWRITE TABLE dw.userprofile_hive_2_hbase
+                    SELECT userid,tagid FROM dw.profile_tag_userid;
+                    ```
+                </section>
+                <section data-markdown>
+                    ## 可能碰到的问题
+                    因为灌入到HBase中的数据一般直接应用到线上，反馈到用户那里。所以在hive数据同步hbase数据的时候，需要做一些校验机制来保障结果的准确性，防止在同步数据的过程中出现问题（比如hive中数据5000万条，同步到hbase后才1000万条）
+                </section>
+                <section data-markdown>
+                    ## 解决方案
+                    - hive到hbase同步数据后，现在hbase中建立一个temp临时表，然后校验hbase的这个临时表和对应hive表的数量差异，如果在可接受范围内，则将hbase的该临时表进行重命名为正式表；
+                    - hive到hbase同步数据后，直接将数据写入正式表，同时在hbase中建立一张状态表，用于标志状态位。当校验hbase的这张正式表和hive的数量差异在可接受范围内时，写入对应的状态表中。接口请求时，只读取状态位这张表中，最近日期的那张表（所以如果hbase的数据同步异常，不会写入状态表中，也不会影响线上数据的读取；）
+                </section>
+                <section data-markdown>
+                    ## 为什么使用不同的数据库
+                    - Hive：跑Spark作业或MapReduce作业，处理大量的数据集时使用
+                    - MySQL：存储一些数量级较少的标签。MySQL的读写不用跑MapReduce作业，对于小量的数据读写速度很快。用于存储元数据、标签量级的监控、一些表加工结果的状态位、业务系统中读取的一些数据；
+                    - HBase/ES：存储线上推荐给用户的实时性较强的数据
+                </section>
+                <section data-markdown>
+                    ## 打标签代码
+                    - 使用pyspark实现
+                    - 见代码文件夹
+                </section>
+                <section data-markdown>
+                    ## 稍微复杂一点的运营使用的管理后台
+                    ![](16.png)
+                </section>
+                <section data-markdown>
+                    ## 稍微复杂一点的运营使用的管理后台
+                    ![](17.png)
+                </section>
+                <section data-markdown>
+                    ## 稍微复杂一点的运营使用的管理后台
+                    ![](18.png)
+                </section>
+                <section data-markdown>
+                    ## 稍微复杂一点的运营使用的管理后台
+                    ![](19.png)
+                </section>
+                <section data-markdown>
+                    ## 稍微复杂一点的运营使用的管理后台
+                    ![](20.png)
+                </section>
+                <section data-markdown>
+                    ## 稍微复杂一点的运营使用的管理后台
+                    ![](21.png)
+                </section>
+			</div>
+		</div>
+
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info about config & dependencies:
+			// - https://github.com/hakimel/reveal.js#configuration
+			// - https://github.com/hakimel/reveal.js#dependencies
+			Reveal.initialize({
+				hash: true,
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/highlight/highlight.js' },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+		</script>
+	</body>
+</html>
